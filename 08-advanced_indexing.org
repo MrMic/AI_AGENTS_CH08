@@ -1,0 +1,15 @@
+#+title:     08-advanced_indexing
+#+author:    Michaël CHLON
+#+email:     mic.a.elle.chlon@gmail.com
+#+property: header-args:jupyter-python :session ch08 :kernel manning-ch08
+
+
+#+begin_src jupyter-python
+import os
+OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
+
+from langchain_chroma import Chroma
+from langchain_classic.storage import InMemoryByteStore
+#+end_src
+
+#+RESULTS:
