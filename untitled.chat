@@ -1,0 +1,163 @@
+{
+  "messages": [
+    {
+      "sender": "c00bf7e697fa4fc79635815cbde28633",
+      "time": 1787210364.3230355,
+      "metadata": {
+        "settings": {},
+        "model": {
+          "id": null,
+          "settings": {}
+        },
+        "to_persona": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona"
+      },
+      "type": "msg",
+      "id": "51c058e2-e353-4717-9add-7631dd22ce40",
+      "body": "hi",
+      "raw_time": false
+    },
+    {
+      "body": "hi. ready.",
+      "id": "a9a4799d-be82-4c00-9696-34ced6992646",
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "type": "msg",
+      "raw_time": false,
+      "time": 1787210366.2553334,
+      "mentions": []
+    },
+    {
+      "raw_time": false,
+      "metadata": {
+        "to_persona": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+        "model": {
+          "settings": {},
+          "id": null
+        },
+        "settings": {}
+      },
+      "body": "donne moi un r\u00e9sum\u00e9 succinct de ce que fait ce notebook",
+      "id": "a776ecba-e917-4567-afec-a71ce2e963ee",
+      "type": "msg",
+      "sender": "c00bf7e697fa4fc79635815cbde28633",
+      "time": 1787210397.2393794
+    },
+    {
+      "metadata": {
+        "tool_calls": [
+          {
+            "tool_call_id": "toolu_01PkFkHcjxtKi827AJFFoqrw",
+            "status": "completed",
+            "title": "jq -r '.cells[] | select(.cell_type==\"markdown\") | .source | join(\"\")' 08-advanced_indexing.ipynb | head -200",
+            "raw_input": {
+              "command": "jq -r '.cells[] | select(.cell_type==\"markdown\") | .source | join(\"\")' /home/mic/DEV/AI_AGENTS_APPS_Manning/ch08/08-advanced_indexing.ipynb | head -200",
+              "description": "Extract markdown from notebook"
+            },
+            "kind": "execute",
+            "raw_output": "## 8.4/ Embedding strategy\n### 8.4.2/ Embedding child chunks with MultiVectorRetriever\n### 8.4.3/ Embedding document summaries \n### 8.4.4/ Embedding hypothetical questions\n## 8.5/ Granular chunk expression\n## 8.6/ Semi-structed content"
+          },
+          {
+            "status": "completed",
+            "raw_input": {
+              "command": "jq -r '.cells[] | select(.cell_type==\"code\") | .source | join(\"\")' /home/mic/DEV/AI_AGENTS_APPS_Manning/ch08/08-advanced_indexing.ipynb | head -300",
+              "description": "Extract code cells preview"
+            },
+            "title": "jq -r '.cells[] | select(.cell_type==\"code\") | .source | join(\"\")' 08-advanced_indexing.ipynb | head -300",
+            "tool_call_id": "toolu_01SJkWiZBKcXTjKLFcyr9cEb",
+            "kind": "execute",
+            "raw_output": "import os\nOPENAI_API_KEY = os.environ['OPENAI_API_KEY']\n\nfrom langchain_chroma import Chroma\nfrom langchain_openai import OpenAIEmbeddings\ncornwall_granular_collection = Chroma(\n    collection_name=\"cornwall_granular\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY)\n)\ncornwall_granular_collection.reset_collection()\ncornwall_coarse_collection = Chroma(\n    collection_name=\"cornwall_coarse\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY)\n)\ncornwall_granular_collection.reset_collection()\nos.environ[\"USER_AGENT\"] = \"manning-ch08/1.0 (mic.a.elle.chlon@gmail.com)\"\n\nfrom langchain_community.document_loaders import AsyncHtmlLoader\ndestination_url = \"https://en.wikivoyage.org/wiki/Cornwall\"\nhtml_loader = AsyncHtmlLoader(destination_url)\ndocs = html_loader.load()\nfrom langchain_text_splitters import HTMLSectionSplitter\n\nheader_to_split_on = [(\"h1\", \"Header 1\"), (\"h2\", \"Header 2\")]\nhtml_section_splitter = HTMLSectionSplitter(\n    headers_to_split_on=header_to_split_on\n)\n\ndef split_docs_into_granular_chunks(docs):\n    all_chunks = []\n    for doc in docs:\n        html_string = doc.page_content\n        temp_chunks = html_section_splitter.split_text(\n            html_string\n        )\n        all_chunks.extend(temp_chunks)\n\n    return all_chunks\ngranular_chunks = split_docs_into_granular_chunks(docs)\n\ncornwall_granular_collection.add_documents(documents=granular_chunks)\n# results = cornwall_granular_collection.similarity_search(\n#     query=\"Events or festivals in Cornwall\",k=3\n# )\n\n# for doc in results:\n#     print(doc)\nfrom langchain_community.document_transformers import Html2TextTransformer\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\nhtml2text_transformer = Html2TextTransformer()\ntext_splitter = RecursiveCharacterTextSplitter(\n    chunk_size=3000, chunk_overlap=300\n)\ndef split_docs_into_coarse_chunks(docs):\n    text_docs = html2text_transformer.transform_documents(docs)\n    coarse_chunks = text_splitter.split_documents(text_docs)\n    return coarse_chunks\ncoarse_chunks = split_docs_into_coarse_chunks(docs)\n\ncornwall_coarse_collection.add_documents(documents=coarse_chunks)\n# results = cornwall_coarse_collection.similarity_search(\n#     query=\"Events or Festival in Cornwall\", k=3\n# )\n\n# for doc in results:\n#     print(doc)\nuk_granular_collection = Chroma(\n    collection_name=\"uk_granular\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY),\n)\nuk_granular_collection.reset_collection()\n\nuk_coarse_collection = Chroma(\n    collection_name=\"uk_coarse\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY),\n)\nuk_coarse_collection.reset_collection()\n\nuk_destinations = [\n    \"Cornwall\", \"North_Cornwall\", \"South_Cornwall\", \"West_Cornwall\",\n    \"Tintagel\", \"Bodmin\", \"Wadebridge\", \"Penzance\", \"Newquay\",\n    \"St_Ives\", \"Port_Isaac\", \"Looe\", \"Polperro\", \"Porthleven\",\n    \"East_Sussex\", \"Brighton\", \"Battle\", \"Hastings_(England)\",\n    \"Rye_(England)\", \"Seaford\", \"Ashdown_Forest\"\n]\n\nwikivoyage_root_url = \"https://en.wikivoyage.org/wiki\"\nuk_destination_urls = [f'{wikivoyage_root_url}/{d}' \n                       for d in uk_destinations]\n\n# for destination_url in uk_destination_urls:\n#     html_loader = AsyncHtmlLoader(destination_url)\n#     docs = html_loader.load()\n\n# granular_chunks = split_docs_into_granular_chunks(docs)\n# uk_granular_collection.add_documents(documents=granular_chunks)\n\n# coarse_chunks = split_docs_into_coarse_chunks(docs)\n# uk_coarse_collection.add_documents(documents=coarse_chunks)\n# granular_results = uk_granular_collection.similarity_search(\n#     query=\"Events or festivals in East Sussex\",k=4)\n\n# for doc in granular_results:\n#     print(doc)\n#     print(\"\\n------------------------------------------------------------------\\n\")\n\n# coarse_results = uk_coarse_collection.similarity_search(\n#     query=\"Events or festivals in East Sussex\",k=4)\n\n# for doc in coarse_results:\n#     print(doc)\nfrom langchain_classic.retrievers import ParentDocumentRetriever\nfrom langchain_classic.storage import InMemoryStore\nfrom langchain_chroma import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import AsyncHtmlLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n# parent_splitter = RecursiveCharacterTextSplitter(chunk_size=3000)\n# child_splitter = RecursiveCharacterTextSplitter(chunk_size=500)\n\n# child_chunk_collection = Chroma(\n#     collection_name=\"uk_child_chunks\",\n#     embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY) \n# )\n# child_chunk_collection.reset_collection()\n\n# doc_store = InMemoryStore()\n\n# parent_doc_retriever = ParentDocumentRetriever(\n#     vectorstore=child_chunk_collection,\n#     docstore=doc_store,\n#     child_splitter=child_splitter,\n#     parent_splitter=parent_splitter\n# )\n# for destination_url in uk_destination_urls:\n#     html_loader = AsyncHtmlLoader(destination_url)\n#     html_docs = html_loader.load()\n#     text_docs = html2text_transformer.transform_documents(html_docs)\n#     print(f'Ingesting {destination_url}')\n#     parent_doc_retriever.add_documents(text_docs, ids=None)\n# list(doc_store.yield_keys())\n# retrieved_docs = parent_doc_retriever.invoke(\"Cornwall Ranger\")\n# print(retrieved_docs[0])\n# child_docs_only = child_chunk_collection.similarity_search(\"Cornwall Ranger\")\n# print(child_docs_only)\nfrom langchain_classic.retrievers.multi_vector import MultiVectorRetriever\nfrom langchain_classic.storage import InMemoryByteStore\nfrom langchain_chroma import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import AsyncHtmlLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nimport uuid\n\n# parent_splitter = RecursiveCharacterTextSplitter(chunk_size=3000)\n# child_splitter = RecursiveCharacterTextSplitter(chunk_size=500)\n\n# child_chunks_collection = Chroma(\n#     collection_name=\"uk_child_chunks\",\n#     embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY) \n# )\n# child_chunks_collection.reset_collection()\n\n# doc_byte_store = InMemoryByteStore()\n# doc_key = \"doc_id\"\n\n# multi_vector_retriever = MultiVectorRetriever(\n#     vectorstore=child_chunks_collection,\n#     byte_store=doc_byte_store\n# )\n# for destination_url in uk_destination_urls:\n#     html_loader = AsyncHtmlLoader(destination_url)\n#     html_docs = html_loader.load()\n#     text_docs = html2text_transformer.transform_documents(html_docs)\n\n#     coarse_chunks = parent_splitter.split_documents(text_docs)\n    \n#     coarse_chunks_ids = [str(uuid.uuid4()) for _ in coarse_chunks]\n    \n#     all_granular_chunks = []\n#     for i, coarse_chunk in enumerate(coarse_chunks):\n\n#         coarse_chunk_id = coarse_chunks_ids[i]\n#         granular_chunks = child_splitter.split_documents([coarse_chunk])\n\n#         for granular_chunk in granular_chunks:\n#             granular_chunk.metadata[doc_key] = coarse_chunk_id\n\n#         all_granular_chunks.extend(granular_chunks)\n    \n#     print(f'Ingesting {destination_url}')\n#     multi_vector_retriever.vectorstore.add_documents(all_granular_chunks)\n#     multi_vector_retriever.docstore.mset(\n#         list(zip(coarse_chunks_ids, coarse_chunks)))\n# retrieved_docs = multi_vector_retriever.invoke(\"Cornwall Ranger\")\n# print(retrieved_docs)\n# child_docs_only = child_chunks_collection.similarity_search(\"Cornwall Ranger\")\n# print(child_docs_only[0])\nfrom langchain_classic.retrievers.multi_vector import MultiVectorRetriever\nfrom langchain_classic.storage import InMemoryByteStore\n\nfrom langchain_chroma import Chroma\n\nfrom langchain_openai import ChatOpenAI\nfrom langchain_openai import OpenAIEmbeddings\n\nfrom langchain_community.document_loaders import AsyncHtmlLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\nfrom langchain_core.documents import Document\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate\nimport uuid\nparent_splitter = RecursiveCharacterTextSplitter(chunk_size=3000)\n\nsummaries_collection = Chroma(\n    collection_name=\"uk_summaries\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY)\n)\nsummaries_collection.reset_collection()\ndoc_byte_store = InMemoryByteStore()\ndoc_key = \"doc_id\"\nmulti_vector_retriever = MultiVectorRetriever(\n    vectorstore=summaries_collection,\n    byte_store=doc_byte_store\n)\nllm = ChatOpenAI(model=\"gpt-5-nano\", api_key=OPENAI_API_KEY)\n\nsummarization_chain = (\n    {\"document\": lambda x: x.page_content}\n    | ChatPromptTemplate.from_template(\"Summarize the following document:\\n\\n{document}\")\n    | llm\n    | StrOutputParser()\n)\n# for destination_url in uk_destination_urls:\n#     html_loader = AsyncHtmlLoader(destination_url)\n#     html_docs = html_loader.load()\n\n#     text_docs = html2text_transformer.transform_documents(html_docs)\n\n#     coarse_chunks = parent_splitter.split_documents(text_docs)\n#     coarse_chunks_ids = [str(uuid.uuid4()) for _ in coarse_chunks]\n#     all_summaries = []\n#     for i, coarse_chunk in enumerate(coarse_chunks):\n#         coarse_chunk_id = coarse_chunks_ids[i]\n#         summary_text = summarization_chain.invoke(coarse_chunk)\n#         summary_doc = Document(page_content=summary_text,\n#                                metadata={doc_key: coarse_chunk_id})\n#         all_summaries.append(summary_doc)\n#     print(f'Ingesting {destination_url}')\n#     multi_vector_retriever.vectorstore.add_documents(all_summaries)\n#     multi_vector_retriever.docstore.mset(\n#         list(zip(coarse_chunks_ids, coarse_chunks)))\n# retrieved_docs = multi_vector_retriever.invoke(\"Cornwall travel\")\n\n# summary_docs_only = summaries_collection.similarity_search(\"Cornwall Travel\")\n# print(summary_docs_only[0])\nfrom langchain_classic.retrievers.multi_vector import MultiVectorRetriever\nfrom langchain_classic.storage import InMemoryByteStore\nfrom langchain_chroma import Chroma\nfrom langchain_openai import ChatOpenAI\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import AsyncHtmlLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nfrom langchain_core.documents import Document\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate\nimport uuid\nfrom typing import List\nfrom pydantic import BaseModel, Field\nparent_splitter = RecursiveCharacterTextSplitter(chunk_size=3000)\n\nhypothetical_questions_collection = Chroma(\n    collection_name=\"uk_hypothetical_questions\",\n    embedding_function=OpenAIEmbeddings(api_key=OPENAI_API_KEY),\n)\nhypothetical_questions_collection.reset_collection()\n\ndoc_byte_store = InMemoryByteStore()\ndoc_key = \"doc_id\"\n\nmulti_vector_retriever = MultiVectorRetriever(\n    vectorstore=hypothetical_questions_collection,\n    byte_store=doc_byte_store\n)\nclass HypotheticalQuestions(BaseModel):\n    \"\"\"A list of hypotetical questions for given text.\"\"\"\n    questions: List[str] = Field(..., description=\"List of hypothetical questions for given text\")\n\nllm_with_structured_output = ChatOpenAI(\n    model=\"gpt-5-nano\",\n    api_key=OPENAI_API_KEY).with_structured_output(HypotheticalQuestions)\nhypothetical_questions_chain = (\n    {\"document_text\": lambda x: x.page_content}\n    | ChatPromptTemplate.from_template(\n        \"Generate a list of exactly 4 hypothetical questions asking to generate that the below text could be used to answer: four hypothetical\\n\\n{document_text}\"\n    )\n    | llm_with_structured_output\n    | (lambda x: x.questions)\n)"
+          }
+        ]
+      },
+      "mentions": [],
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "time": 1787210399.142353,
+      "type": "msg",
+      "raw_time": false,
+      "body": "",
+      "id": "3f7c2d55-0bd4-4320-8555-55019a25c60d"
+    },
+    {
+      "id": "3e493409-5c1b-43de-97ba-dce6b91a452c",
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "time": 1787210411.4626484,
+      "body": "Notebook chapitre 8 Manning \u2014 **strat\u00e9gies d'indexation avanc\u00e9es pour RAG** sur donn\u00e9es Wikivoyage (Cornwall + destinations UK).\n\nSections:\n- **8.4 Embedding strategy** \u2014 compare chunking granulaire (`HTMLSectionSplitter`) vs coarse (`RecursiveCharacterTextSplitter` 3000 chars) dans Chroma.\n- **8.4.2 MultiVectorRetriever + child chunks** \u2014 embed petits chunks enfants, retourne parent doc via `InMemoryByteStore`.\n- **8.4.3 Document summaries** \u2014 LLM (`gpt-5-nano`) r\u00e9sume chaque coarse chunk, embed le r\u00e9sum\u00e9, retourne doc original.\n- **8.4.4 Hypothetical questions** \u2014 LLM g\u00e9n\u00e8re 4 questions par chunk (structured output Pydantic), embed les questions.\n- **8.5 Granular chunk expansion** \u2014 expansion contexte autour chunks retrouv\u00e9s.\n- **8.6 Semi-structured content** \u2014 HTML/tables.\n\nPattern commun: ingest Wikivoyage \u2192 split \u2192 embed variante \u2192 Chroma + MultiVectorRetriever. Plupart des ingestions comment\u00e9es (d\u00e9j\u00e0 ex\u00e9cut\u00e9es).",
+      "raw_time": false,
+      "mentions": [],
+      "type": "msg"
+    },
+    {
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "mentions": [],
+      "id": "8baff183-06e0-49bb-95cb-cf69bfd7ab11",
+      "raw_time": false,
+      "type": "msg",
+      "time": 1787210811.6868145,
+      "body": "Notebook chapitre 8 Manning \u2014 **strat\u00e9gies d'indexation avanc\u00e9es RAG** sur Wikivoyage (Cornwall + destinations UK), stockage Chroma.\n\n- **8.4 Embedding strategy** \u2014 comp"
+    },
+    {
+      "raw_time": false,
+      "id": "ca5a020f-6188-4aed-970a-96e05bb5afe2",
+      "time": 1787210816.1557393,
+      "body": "hi.",
+      "type": "msg",
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "mentions": []
+    },
+    {
+      "body": "Notebook chapitre 8 Manning \u2014 **strat\u00e9gies d'indexation avanc\u00e9es RAG** sur Wikivoyage (Cornwall + destinations UK), stockage Chroma.\n\n- **8.4 Embedding strategy** \u2014 chunks granulaires (`HTMLSectionSplitter`) vs coarse (`RecursiveCharacterTextSplitter`, 3000 chars).\n- **8.4.2 Child chunks** \u2014 `MultiVectorRetriever`: embed enfants, retourne parent via `InMemoryByteStore`.\n- **8.4.3 Summaries** \u2014 LLM (`gpt-5-nano`) r\u00e9sume coarse chunks, embed r\u00e9sum\u00e9, retourne doc original.\n- **8.4.4 Hypothetical questions** \u2014 LLM g\u00e9n\u00e8re 4 questions/chunk (Pydantic structured output), embed questions.\n- **8.5 Granular chunk expansion** \u2014 \u00e9largit contexte autour chunks retrouv\u00e9s.\n- **8.6 Semi-structured content** \u2014 HTML/tables.\n\nPlupart des ingestions comment\u00e9es (d\u00e9j\u00e0 ex\u00e9cut\u00e9es).",
+      "type": "msg",
+      "id": "61d08b9d-a153-4f87-8022-06dba9afb7b6",
+      "raw_time": false,
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "time": 1787210820.5141146,
+      "mentions": []
+    }
+  ],
+  "users": {
+    "c00bf7e697fa4fc79635815cbde28633": {
+      "avatar_url": null,
+      "bot": false,
+      "color": "var(--jp-collaborator-color7)",
+      "username": "c00bf7e697fa4fc79635815cbde28633",
+      "initials": "AA",
+      "display_name": "Anonymous Aoede",
+      "mention_name": "Anonymous-Aoede",
+      "name": "Anonymous Aoede"
+    },
+    "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona": {
+      "bot": true,
+      "username": "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona",
+      "display_name": "Claude",
+      "name": "Claude",
+      "avatar_url": "/api/ai/avatars/jupyter-ai-personas%3A%3Ajupyter_ai_acp_client%3A%3AClaudeAcpPersona",
+      "initials": null,
+      "color": null
+    },
+    "jupyter-ai-personas::jupyter_ai_acp_client::CopilotAcpPersona": {
+      "initials": null,
+      "bot": true,
+      "avatar_url": "/api/ai/avatars/jupyter-ai-personas%3A%3Ajupyter_ai_acp_client%3A%3ACopilotAcpPersona",
+      "name": "Copilot",
+      "display_name": "Copilot",
+      "color": null,
+      "username": "jupyter-ai-personas::jupyter_ai_acp_client::CopilotAcpPersona"
+    },
+    "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona": {
+      "avatar_url": "/api/ai/avatars/jupyter-ai-personas%3A%3Ajupyter_ai_acp_client%3A%3AOpenCodeAcpPersona",
+      "bot": true,
+      "display_name": "OpenCode",
+      "name": "OpenCode",
+      "username": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "color": null,
+      "initials": null
+    }
+  },
+  "attachments": {},
+  "metadata": {
+    "acp_session_ids": {
+      "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona": "ses_fe1f625c7ffeHV96skNm35xam8",
+      "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona": "3ecff44c-ec8a-41fc-9e11-6cf01275a1d0"
+    },
+    "id": "c59a1c4d-5365-4a3c-9ee4-2accf4b63aea"
+  }
+}
